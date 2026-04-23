@@ -9,17 +9,16 @@ public readonly record struct IDRange (FirstID FirstID, LastID LastID, bool IsRa
 
 public static class IDRangeExt
 {
-    extension (IDRange iDRange)
+    extension (in IDRange iDRange)
     {
         public static IDRange New (FirstID FirstID, LastID LastID) => 
-            long.TryParse(FirstID.Id.ToString(), out long firstNumber) && 
-            long.TryParse(LastID.Id.ToString(), out long secondNumber) 
-                ? Enumerable.LongRange(firstNumber, (int)(secondNumber - firstNumber + 1))
-                    .Select(n => n.ToString())
+                new IDRange(FirstID, LastID, false)
+                    .Expand()
                     .Any(number => number[..(number.Length / 2)] == number[(number.Length / 2)..]) 
                         ? new (FirstID, LastID, false) 
-                        : new (FirstID, LastID, true)
-                : throw new InvalidCastException();
+                        : new (FirstID, LastID, true);
+        public static IEnumerable<InvalidID> GetInvalidIDs (in IDRange range) => range.GetInvalids();
+        public static IEnumerable<string> ExpandRange (in IDRange range) =>  range.Expand(); 
         public static IDRange ParseString (string supposedID) =>
             supposedID
                 .Split('-')
@@ -29,19 +28,19 @@ public static class IDRangeExt
                     [var first, var second] => IDRange.New(new (first), new (second)),
                     _ => throw new ArgumentException("Invalid ID range format")
                 };
+        public IEnumerable<string> Expand () =>
+            long.TryParse(iDRange.FirstID.Id.ToString(), out long firstNumber) && 
+            long.TryParse(iDRange.LastID.Id.ToString(), out long secondNumber) 
+                ? Enumerable.LongRange(firstNumber, (int)(secondNumber - firstNumber + 1)).Select(n => n.ToString())
+                : throw new Exception("Error parsing number from string");
 
-        public static ImmutableList<InvalidID> GetInvalidIDs (IDRange dRange) => dRange switch
+        public IEnumerable<InvalidID> GetInvalids () => iDRange switch
         {
             (_, _, var valid) when valid is true => [],
             (var FirstID, var LastID, _) => 
-                long.TryParse(FirstID.Id.Value, out long firstNumber) && 
-                long.TryParse(LastID.Id.Value, out long secondNumber) 
-                    ? Enumerable.LongRange(firstNumber, (int)(secondNumber - firstNumber + 1))
-                        .Select(n => n.ToString())
-                        .Where(number => number[..(number.Length / 2)] == number[(number.Length / 2)..])
-                        .Select(number => new InvalidID(new (number)))
-                        .ToImmutableList()
-                    : throw new InvalidCastException()
+                iDRange.Expand()
+                    .Where(number => number[..(number.Length / 2)] == number[(number.Length / 2)..])
+                    .Select(number => new InvalidID(new (number)))
         };
     }
 

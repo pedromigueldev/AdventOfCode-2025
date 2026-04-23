@@ -18,8 +18,8 @@ Console.WriteLine("Hello, World!");
     var daytwo = 
         File.ReadAllText("data/daytwo")
         .Split(",")
-        .Select(IDRange.ParseString)
-        .SelectMany(IDRange.GetInvalidIDs)
+        .Select(e => IDRange.ParseString(e))
+        .SelectMany(e => e.GetInvalids())
         .Sum(e => long.TryParse(e.Id.Value, out long value) 
             ? value 
             : throw new InvalidCastException()
