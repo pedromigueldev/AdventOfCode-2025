@@ -11,10 +11,13 @@ public static class IDRangeExt
 {
     extension (in IDRange iDRange)
     {
+        private static bool IsInvalidNumber (string number) => 
+            Enumerable.Range(1, number.Length/2)
+            .Any(span => number.Equals(string.Concat(Enumerable.Repeat(number[..span], number.Length / number[..span].Length))));
         public static IDRange New (FirstID FirstID, LastID LastID) => 
                 new IDRange(FirstID, LastID, false)
                     .Expand()
-                    .Any(number => number[..(number.Length / 2)] == number[(number.Length / 2)..]) 
+                    .Any(IsInvalidNumber) 
                         ? new (FirstID, LastID, false) 
                         : new (FirstID, LastID, true);
         public static IEnumerable<InvalidID> GetInvalidIDs (in IDRange range) => range.GetInvalids();
@@ -36,10 +39,10 @@ public static class IDRangeExt
 
         public IEnumerable<InvalidID> GetInvalids () => iDRange switch
         {
-            (_, _, var valid) when valid is true => [],
+            (_, _, var valid) when valid => [],
             (var FirstID, var LastID, _) => 
                 iDRange.Expand()
-                    .Where(number => number[..(number.Length / 2)] == number[(number.Length / 2)..])
+                    .Where(IsInvalidNumber)
                     .Select(number => new InvalidID(new (number)))
         };
     }
